@@ -1,6 +1,9 @@
+mod game_progress;
 mod graphics;
 mod input;
 mod words;
+
+use self::game_progress::GameProgress;
 
 const MAX_GUESSES: u8 = 6;
 
@@ -10,9 +13,9 @@ pub fn run() {
     let mut guesses: Vec<char> = vec![];
     let mut incorrect_guesses: u8 = 0;
 
-    show_display(&display, &guesses, &incorrect_guesses);
-
     loop {
+        show_display(&display, &guesses, &incorrect_guesses);
+
         let guess = match input::get_player_input() {
             Ok(value) => value,
             Err(e) => {
@@ -34,17 +37,31 @@ pub fn run() {
             incorrect_guesses += 1;
         }
 
-        show_display(&display, &guesses, &incorrect_guesses);
-
-        if victory(&word, &guesses) {
-            break;
-        }
-
-        if game_over(incorrect_guesses as u8) {
-            println!("\nYou lose! The word was {}.\n", word);
-            break;
+        match check_game_progress(&word, &guesses, incorrect_guesses as u8) {
+            GameProgress::Won => {
+                println!("\nNice! You won!");
+                break;
+            }
+            GameProgress::Lost => {
+                println!("\nYou lose! The word was {}.\n", word);
+                break;
+            }
+            _ => {}
         }
     }
+}
+
+fn check_game_progress(word: &str, guesses: &[char], incorrect_guesses: u8) -> GameProgress {
+    if incorrect_guesses == MAX_GUESSES {
+        return GameProgress::Lost;
+    }
+
+    for letter in word.chars() {
+        if !guesses.contains(&letter) {
+            return GameProgress::InProgress;
+        }
+    }
+    return GameProgress::Won;
 }
 
 fn show_display(display: &[char], guesses: &[char], incorrect_guesses: &u8) {
@@ -60,18 +77,4 @@ fn show_display(display: &[char], guesses: &[char], incorrect_guesses: &u8) {
     for item in guesses.iter() {
         print!("{} ", item);
     }
-}
-
-fn victory(word: &str, guesses: &[char]) -> bool {
-    for letter in word.chars() {
-        if !guesses.contains(&letter) {
-            return false;
-        }
-    }
-    println!("\nNice! You won!");
-    true
-}
-
-fn game_over(incorrect_guesses: u8) -> bool {
-    incorrect_guesses == MAX_GUESSES
 }
